@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Status Auto - Upload Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    body { font-family: system-ui; }
+    .status-card { transition: all 0.3s; }
+    .status-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen">
+  <div class="max-w-7xl mx-auto p-6">
+    <div class="flex justify-between items-center mb-10">
+      <h1 class="text-4xl font-bold flex items-center gap-3">
+        <i class="fa-brands fa-whatsapp text-green-500"></i>
+        WhatsApp Status Auto (with Upload)
+      </h1>
+      <div id="connection-status" class="px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">✓ Connected</div>
+    </div>
+
+    <!-- Setup -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="bg-zinc-900 rounded-3xl p-8">
+        <h2 class="text-xl font-semibold mb-6">1. Wassenger Connection</h2>
+        <div class="space-y-4">
+          <input id="deviceId" type="text" placeholder="Device ID (from Wassenger)" 
+                 class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-green-500">
+          <input id="token" type="password" placeholder="API Token" 
+                 class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-green-500">
+          <button onclick="saveConnection()" 
+                  class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-4 rounded-2xl transition">Save & Connect</button>
+        </div>
+      </div>
+
+      <div class="bg-zinc-900 rounded-3xl p-8">
+        <h2 class="text-xl font-semibold mb-6">2. Daily Settings</h2>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm mb-2">Mode</label>
+            <select id="mode" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4">
+              <option value="random">Random every day</option>
+              <option value="sequential">Cycle in order</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm mb-2">Post Time (24h)</label>
+            <input id="postTime" type="time" value="09:00" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4">
+          </div>
+          <button onclick="exportConfig()" 
+                  class="w-full bg-blue-600 hover:bg-blue-700 font-bold py-4 rounded-2xl">Export Config for Automation</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Status with Upload -->
+    <div class="mt-10 bg-zinc-900 rounded-3xl p-8">
+      <h2 class="text-xl font-semibold mb-6">3. Add New Status (Text + Media Upload)</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <input id="message" placeholder="Status text / caption" class="bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-4">
+        <div>
+          <label class="block text-sm mb-2">Upload Image/Video (optional)</label>
+          <input id="mediaFile" type="file" accept="image/*,video/*" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-500/20 file:text-green-400 hover:file:bg-green-500/30">
+          <p id="upload-status" class="text-xs text-zinc-400 mt-2"></p>
+        </div>
+      </div>
+      <div id="preview" class="mt-4 hidden">
+        <img id="preview-img" class="max-h-48 rounded-2xl mx-auto" alt="Preview">
+        <video id="preview-video" class="max-h-48 rounded-2xl mx-auto" controls></video>
+      </div>
+      <button onclick="addStatus()" 
+              class="mt-6 w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-200">Add Status</button>
+    </div>
+
+    <!-- Statuses List -->
+    <div class="mt-10">
+      <h2 class="text-xl font-semibold mb-6">Your Statuses (<span id="count">0</span>)</h2>
+      <div id="statuses-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- History (local) -->
+    <div class="mt-16 bg-zinc-900 rounded-3xl p-8">
+      <h2 class="text-xl font-semibold mb-6">Post History (local view)</h2>
+      <table id="history" class="w-full text-sm"></table>
+    </div>
+  </div>
+
+  <script>
+    let statuses = [];
+    let deviceId = '';
+    let token = '';
+    let mode = 'random';
+    let postTime = '09:00';
+
+    const IMGBB_API_KEY = 'PASTE_YOUR_IMGBB_API_KEY_HERE';  // ← Replace this!
+
+    function loadData() {
+      const data = JSON.parse(localStorage.getItem('waStatusAuto') || '{}');
+      statuses = data.statuses || [];
+      deviceId = data.deviceId || '';
+      token = data.token || '';
+      mode = data.mode || 'random';
+      postTime = data.postTime || '09:00';
+
+      document.getElementById('deviceId').value = deviceId;
+      document.getElementById('token').value = token;
+      document.getElementById('mode').value = mode;
+      document.getElementById('postTime').value = postTime;
+      renderStatuses();
+    }
+
+    function saveConnection() {
+      deviceId = document.getElementById('deviceId').value.trim();
+      token = document.getElementById('token').value.trim();
+      saveToLocal();
+      alert('Connection saved!');
+    }
+
+    function saveToLocal() {
+      localStorage.setItem('waStatusAuto', JSON.stringify({
+        deviceId, token, statuses, mode, postTime
+      }));
+    }
+
+    // Handle file selection + upload to ImgBB
+    document.getElementById('mediaFile').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('upload-status');
+      statusEl.textContent = 'Uploading...';
+
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('key', IMGBB_API_KEY);
+
+      try {
+        const res = await fetch('https://api.imgbb.com/1/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          const url = json.data.url;
+          document.getElementById('mediaUrlHidden').value = url;  // temp store
+          statusEl.textContent = 'Upload complete! ✓';
+
+          // Show preview
+          const preview = document.getElementById('preview');
+          preview.classList.remove('hidden');
+          if (file.type.startsWith('image/')) {
+            document.getElementById('preview-img').src = url;
+            document.getElementById('preview-img').classList.remove('hidden');
+            document.getElementById('preview-video').classList.add('hidden');
+          } else if (file.type.startsWith('video/')) {
+            document.getElementById('preview-video').src = url;
+            document.getElementById('preview-video').classList.remove('hidden');
+            document.getElementById('preview-img').classList.add('hidden');
+          }
+        } else {
+          statusEl.textContent = 'Upload failed: ' + (json.error?.message || 'Unknown error');
+        }
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+      }
+    });
+
+    function addStatus() {
+      const message = document.getElementById('message').value.trim();
+      const mediaUrl = document.getElementById('mediaUrlHidden')?.value || '';
+
+      if (!message) return alert('Text/caption is required');
+
+      statuses.push({
+        id: Date.now(),
+        message,
+        mediaUrl: mediaUrl || null
+      });
+
+      renderStatuses();
+      saveToLocal();
+
+      // Reset form
+      document.getElementById('message').value = '';
+      document.getElementById('mediaFile').value = '';
+      document.getElementById('upload-status').textContent = '';
+      document.getElementById('preview').classList.add('hidden');
+      if (document.getElementById('mediaUrlHidden')) document.getElementById('mediaUrlHidden').remove();
+      const hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.id = 'mediaUrlHidden';
+      document.querySelector('.mt-10.bg-zinc-900').appendChild(hiddenInput);
+    }
+
+    function deleteStatus(id) {
+      statuses = statuses.filter(s => s.id !== id);
+      renderStatuses();
+      saveToLocal();
+    }
+
+    function renderStatuses() {
+      const container = document.getElementById('statuses-list');
+      container.innerHTML = statuses.map(s => `
+        <div class="status-card bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+          <p class="text-sm line-clamp-3 mb-4">${s.message}</p>
+          \( {s.mediaUrl ? (s.mediaUrl.match(/\.(mp4|webm|ogg) \)/i) 
+            ? `<video src="${s.mediaUrl}" class="w-full h-48 object-cover rounded-2xl mb-4" controls></video>`
+            : `<img src="${s.mediaUrl}" class="w-full h-48 object-cover rounded-2xl mb-4">`) : ''}
+          <div class="flex gap-3">
+            <button onclick="deleteStatus(${s.id})" class="flex-1 bg-red-500/20 text-red-400 py-3 rounded-2xl text-sm">Delete</button>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('count').textContent = statuses.length;
+    }
+
+    function exportConfig() {
+      mode = document.getElementById('mode').value;
+      postTime = document.getElementById('postTime').value;
+      saveToLocal();
+
+      const config = { deviceId, token, statuses, mode, postTime, lastIndex: 0 };
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'wa-status-config.json';
+      a.click();
+
+      alert('Config exported! Upload config.json to your Railway project as before.');
+    }
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>
