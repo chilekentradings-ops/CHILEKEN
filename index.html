@@ -2,241 +2,176 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Excel-like WebApp + Advanced Formulas + Charts</title>
+    <title>Excel-like WebApp - Handsontable + HyperFormula + Charts</title>
     
-    <!-- Jspreadsheet -->
-    <script src="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.js"></script>
-    <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.css">
-    <script src="https://bossanova.uk/jspreadsheet/v5/jsuites.js"></script>
-    <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v5/jsuites.css">
-
-    <!-- SheetJS -->
+    <!-- Handsontable CSS & JS (Community edition) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    
+    <!-- HyperFormula (advanced formulas) -->
+    <script src="https://cdn.jsdelivr.net/npm/hyperformula/dist/hyperformula.full.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- SheetJS for real Excel export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+    
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <!-- HyperFormula -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@latest/dist/hyperformula.full.min.js"></script>
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f9f9f9; }
-        h1 { margin: 10px 0 5px; }
+        body { font-family: Arial, sans-serif; margin: 15px; background: #f5f5f5; }
+        h1 { margin-bottom: 10px; }
         .container { display: flex; gap: 15px; flex-wrap: wrap; }
-        #spreadsheet { flex: 2; min-width: 600px; border: 1px solid #ccc; }
-        .chart-panel { flex: 1; min-width: 350px; background: white; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
-        .chart-container { position: relative; height: 400px; margin-bottom: 20px; }
-        button { margin: 5px 3px; padding: 8px 12px; cursor: pointer; }
+        #handsontable { flex: 2; min-width: 700px; background: white; border: 1px solid #ccc; }
+        .sidebar { flex: 1; min-width: 380px; background: white; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .chart-container { position: relative; height: 380px; margin-top: 10px; }
+        button { padding: 8px 14px; margin: 5px 4px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>Excel-like WebApp <small>(Advanced Formulas + Live Charts)</small></h1>
+    <h1>Real Excel-like WebApp <small>(Handsontable + HyperFormula + Live Charts)</small></h1>
     
-    <div style="margin-bottom: 10px;">
-        <button onclick="exportToExcel()">📥 Excel (.xlsx)</button>
-        <button onclick="exportToPDF()">📥 PDF</button>
-        <button onclick="addNewSheet()">+ Sheet</button>
-        
-        <span style="margin-left: 30px; font-weight: bold;">Create Chart:</span>
-        <button onclick="createChart('line')">Line</button>
-        <button onclick="createChart('bar')">Bar</button>
-        <button onclick="createChart('pie')">Pie</button>
-        <button onclick="createChart('doughnut')">Doughnut</button>
+    <div>
+        <button onclick="exportToExcel()">📥 Download as Excel (.xlsx)</button>
+        <button onclick="exportToPDF()">📥 Download as PDF</button>
+        <button onclick="addRow()">+ Row</button>
+        <button onclick="addColumn()">+ Column</button>
     </div>
 
     <div class="container">
-        <div id="spreadsheet"></div>
+        <div id="handsontable"></div>
         
-        <div class="chart-panel">
+        <div class="sidebar">
             <h3>Live Chart</h3>
+            <select id="chartType" onchange="updateChart()">
+                <option value="line">Line Chart</option>
+                <option value="bar">Bar Chart</option>
+                <option value="pie">Pie Chart</option>
+            </select>
             <div class="chart-container">
                 <canvas id="myChart"></canvas>
             </div>
-            <small style="color: #666;">Edit cells → chart updates automatically</small>
+            <small>Edit any cell → chart updates automatically</small>
         </div>
     </div>
 
     <script>
-        // ==================== HyperFormula Setup ====================
+        // HyperFormula instance
         const hf = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' });
 
-        // ==================== Jspreadsheet Setup ====================
-        let spreadsheet = jspreadsheet(document.getElementById('spreadsheet'), {
-            minDimensions: [12, 25],
-            toolbar: true,
-            tabs: true,
-            columnResize: true,
-            rowResize: true,
+        // Handsontable instance
+        const container = document.getElementById('handsontable');
+        let hot = new Handsontable(container, {
+            data: Handsontable.helper.createSpreadsheetData(20, 10), // 20 rows, 10 cols
+            rowHeaders: true,
+            colHeaders: true,
             contextMenu: true,
-            allowInsertRow: true,
-            allowInsertColumn: true,
-            allowDeleteRow: true,
-            allowDeleteColumn: true,
-            onchange: updateHyperAndChart,
-            oninsertrow: syncAndRefresh,
-            oninsertcolumn: syncAndRefresh,
-            ondeleterow: syncAndRefresh,
-            ondeletecolumn: syncAndRefresh,
+            manualRowMove: true,
+            manualColumnMove: true,
+            filters: true,
+            dropdownMenu: true,
+            formulas: {
+                engine: HyperFormula,
+                sheetName: 'Sheet1'
+            },
+            licenseKey: 'non-commercial-and-evaluation', // for testing
+            afterChange: function() {
+                updateChart();
+            }
         });
 
         let currentChart = null;
 
-        // ==================== Sync with HyperFormula ====================
-        function updateHyperAndChart(instance, cell, x, y, value) {
-            const sheetIndex = spreadsheet.getWorksheetIndex();
-            const hfSheetId = hf.getSheetId(hf.getSheetName(sheetIndex));
-            hf.setCellContents({ sheet: hfSheetId, col: x, row: y }, [[value || '']]);
-            refreshDisplayedValues();
-            updateChart();   // ← Live update
-        }
-
-        function syncAndRefresh() {
-            syncWithHyperFormula();
-            updateChart();
-        }
-
-        function syncWithHyperFormula() {
-            const sheetIndex = spreadsheet.getWorksheetIndex();
-            const hfSheetId = hf.getSheetId(hf.getSheetName(sheetIndex));
-            const data = spreadsheet.getData();
-            hf.setSheetContent(hfSheetId, data.map(row => row.map(cell => 
-                cell && cell.toString().startsWith('=') ? cell : (cell || '')
-            )));
-            refreshDisplayedValues();
-        }
-
-        function refreshDisplayedValues() {
-            const sheetIndex = spreadsheet.getWorksheetIndex();
-            const hfSheetId = hf.getSheetId(hf.getSheetName(sheetIndex));
-            const dims = hf.getSheetDimensions(hfSheetId);
-            for (let r = 0; r < dims.height; r++) {
-                for (let c = 0; c < dims.width; c++) {
-                    const val = hf.getCellValue({ sheet: hfSheetId, col: c, row: r });
-                    if (val !== null && val !== undefined) {
-                        spreadsheet.setValueFromCoords(c, r, val, false);
-                    }
-                }
-            }
-        }
-
-        function addNewSheet() {
-            const name = `Sheet${spreadsheet.worksheets.length + 1}`;
-            hf.addSheet(name);
-            spreadsheet.insertWorksheet({ worksheetName: name, minDimensions: [12, 25] });
-            syncWithHyperFormula();
-        }
-
-        // ==================== Chart.js Functions ====================
-        function getSelectedData() {
-            // For simplicity: use columns A (labels) and C (Profit) from demo
-            // You can extend this to use actual selected range later
-            const data = spreadsheet.getData();
+        // Simple data for chart (Column A as labels, Column D as values - adjust as needed)
+        function getChartData() {
+            const data = hot.getData();
             const labels = [];
             const values = [];
-            
-            for (let i = 1; i < data.length; i++) {   // skip header
-                if (data[i][0]) labels.push(data[i][0]);   // Column A
-                if (data[i][2] !== undefined) values.push(Number(data[i][2]) || 0); // Column C (Profit)
+            for (let i = 1; i < data.length; i++) { // skip header if any
+                if (data[i][0]) labels.push(data[i][0]);
+                const val = parseFloat(data[i][3]) || 0; // Column D (0-based index 3)
+                values.push(val);
             }
             return { labels, values };
         }
 
-        function createChart(type) {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            const { labels, values } = getSelectedData();
+        function updateChart() {
+            const type = document.getElementById('chartType').value;
+            const { labels, values } = getChartData();
 
             if (currentChart) currentChart.destroy();
 
+            const ctx = document.getElementById('myChart').getContext('2d');
             currentChart = new Chart(ctx, {
                 type: type,
                 data: {
-                    labels: labels.length ? labels : ['Item 1', 'Item 2', 'Item 3'],
+                    labels: labels.length ? labels : ['A', 'B', 'C'],
                     datasets: [{
-                        label: 'Profit',
-                        data: values.length ? values : [18000, 25000, 32000],
-                        backgroundColor: type === 'line' ? 'rgba(54, 162, 235, 0.2)' : 
-                                       ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
+                        label: 'Values',
+                        data: values.length ? values : [120, 190, 300],
+                        backgroundColor: type === 'line' ? 'rgba(75,192,192,0.2)' : 
+                                       ['#FF6384','#36A2EB','#FFCE56'],
                         borderColor: '#36A2EB',
-                        borderWidth: 2,
-                        tension: 0.3
+                        borderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: `${type.charAt(0).toUpperCase() + type.slice(1)} Chart` }
-                    },
-                    scales: type !== 'pie' && type !== 'doughnut' ? {
-                        y: { beginAtZero: true }
-                    } : {}
+                    plugins: { legend: { position: 'top' } },
+                    scales: (type !== 'pie' && type !== 'doughnut') ? { y: { beginAtZero: true } } : {}
                 }
             });
         }
 
-        function updateChart() {
-            if (!currentChart) return;
-            const { labels, values } = getSelectedData();
-            currentChart.data.labels = labels.length ? labels : ['Item 1', 'Item 2', 'Item 3'];
-            currentChart.data.datasets[0].data = values.length ? values : [18000, 25000, 32000];
-            currentChart.update('none');   // smooth update
-        }
-
-        // ==================== Export Functions ====================
+        // Exports
         function exportToExcel() {
+            const data = hot.getData();
+            const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
-            spreadsheet.worksheets.forEach((ws, i) => {
-                const data = ws.getData();
-                const sheetName = hf.getSheetName(i) || `Sheet${i+1}`;
-                const wsExcel = XLSX.utils.aoa_to_sheet(data);
-                XLSX.utils.book_append_sheet(wb, wsExcel, sheetName);
-            });
-            XLSX.writeFile(wb, "spreadsheet-with-charts.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            XLSX.writeFile(wb, "excel-like-spreadsheet.xlsx");
         }
 
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Spreadsheet with Charts", 14, 20);
-            const data = spreadsheet.getData();
+            doc.text("Excel-like Spreadsheet Export", 14, 20);
+            const data = hot.getData();
             let y = 30;
             data.forEach(row => {
                 doc.text(row.join("   "), 14, y);
-                y += 7;
+                y += 8;
                 if (y > 280) { doc.addPage(); y = 30; }
             });
-            doc.save("spreadsheet-with-charts.pdf");
+            doc.save("spreadsheet.pdf");
         }
 
-        // ==================== Demo Data ====================
+        function addRow() { hot.alter('insert_row', hot.countRows()); }
+        function addColumn() { hot.alter('insert_col', hot.countCols()); }
+
+        // Initial demo data with formulas
         setTimeout(() => {
-            syncWithHyperFormula();
+            // Headers
+            hot.setDataAtCell(0, 0, "Month");
+            hot.setDataAtCell(0, 1, "Revenue");
+            hot.setDataAtCell(0, 2, "Expenses");
+            hot.setDataAtCell(0, 3, "Profit");
 
-            // Header
-            spreadsheet.setValueFromCoords(0, 0, "Month", false);
-            spreadsheet.setValueFromCoords(1, 0, "Revenue", false);
-            spreadsheet.setValueFromCoords(2, 0, "Cost", false);
-            spreadsheet.setValueFromCoords(3, 0, "Profit", false);
-
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+            const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul"];
             for (let i = 0; i < months.length; i++) {
-                spreadsheet.setValueFromCoords(0, i+1, months[i], false);
-                spreadsheet.setValueFromCoords(1, i+1, 40000 + i * 8000, false);
-                spreadsheet.setValueFromCoords(2, i+1, 22000 + i * 5000, false);
-                spreadsheet.setValueFromCoords(3, i+1, `=B\( {i+2}-C \){i+2}`, false);
+                hot.setDataAtCell(i+1, 0, months[i]);
+                hot.setDataAtCell(i+1, 1, 50000 + i*7000);
+                hot.setDataAtCell(i+1, 2, 30000 + i*4000);
+                hot.setDataAtCell(i+1, 3, `=B\( {i+2}-C \){i+2}`); // Real formula
             }
 
-            refreshDisplayedValues();
+            updateChart();
+        }, 300);
 
-            // Create initial Line Chart
-            createChart('line');
-        }, 400);
-
-        console.log("✅ Spreadsheet with Advanced Formulas + Live Charts Ready!");
+        console.log("✅ Real Excel-like experience loaded with Handsontable!");
     </script>
 </body>
 </html>
