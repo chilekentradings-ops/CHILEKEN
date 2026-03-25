@@ -14,10 +14,10 @@
         .grid-container {
             max-height: calc(100vh - 160px);
             overflow: auto;
-            border: 1px solid #cbd5e1;
+            border: 2px solid #cbd5e1;
             border-radius: 16px;
             background: white;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
         }
         
         table {
@@ -28,11 +28,12 @@
         
         th, td {
             border: 1px solid #e2e8f0;
-            padding: 8px 10px;
-            min-width: 120px;
-            height: 32px;
+            padding: 10px 12px;
+            min-width: 130px;
+            height: 38px;
             text-align: left;
             vertical-align: middle;
+            color: #1e2937; /* Dark text for visibility */
         }
         
         thead th {
@@ -48,12 +49,12 @@
         tbody th {
             position: sticky;
             left: 0;
-            background: #f8fafc;
-            color: #64748b;
-            font-weight: 500;
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
             z-index: 20;
             text-align: right;
-            width: 50px;
+            width: 60px;
         }
         
         td {
@@ -61,28 +62,31 @@
             white-space: pre-wrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            background: white;
         }
         
         td:focus {
-            outline: 2px solid #3b82f6;
-            outline-offset: -2px;
+            outline: 3px solid #3b82f6;
+            outline-offset: -3px;
             background: #fefce8;
             z-index: 10;
+            color: #1e2937;
         }
         
-        .status-bar {
-            font-size: 13px;
-            color: #64748b;
+        td:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            font-style: italic;
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100">
+<body class="bg-slate-950">
 
     <!-- Header -->
-    <div class="bg-white border-b sticky top-0 z-50 shadow">
+    <div class="bg-white border-b sticky top-0 z-50 shadow-md">
         <div class="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl">📊</div>
+                <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow">📊</div>
                 <div>
                     <h1 class="text-3xl font-bold text-slate-900">Gridly</h1>
                     <p class="text-sm text-slate-500">15 Columns • 5000 Rows • Fully Editable</p>
@@ -91,29 +95,29 @@
 
             <div class="flex gap-3">
                 <button onclick="fillSampleData()" 
-                        class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-sm font-medium transition">
+                        class="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-sm font-medium transition flex items-center gap-2">
                     📝 Sample Data
                 </button>
                 
                 <button onclick="downloadCSV()" 
-                        class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-sm font-medium transition">
-                    📥 Download Excel (CSV)
+                        class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-sm font-medium transition flex items-center gap-2">
+                    📥 Download Excel (.csv)
                 </button>
                 
                 <button onclick="downloadPDF()" 
-                        class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-sm font-medium transition">
+                        class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-sm font-medium transition flex items-center gap-2">
                     📕 Download PDF
                 </button>
                 
                 <button onclick="clearAll()" 
-                        class="px-5 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl text-sm font-medium transition">
-                    Clear All
+                        class="px-6 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl text-sm font-medium transition">
+                    🗑️ Clear
                 </button>
             </div>
 
-            <div class="flex items-center gap-4 text-sm">
-                <div id="currentCell" class="font-mono bg-slate-100 text-slate-700 px-4 py-1 rounded-2xl">A1</div>
-                <div class="bg-emerald-100 text-emerald-700 px-4 py-1 rounded-2xl text-xs font-semibold flex items-center gap-2">
+            <div class="flex items-center gap-4">
+                <div id="currentCell" class="font-mono bg-slate-100 text-slate-700 px-5 py-2 rounded-2xl font-medium">A1</div>
+                <div class="bg-emerald-100 text-emerald-700 px-5 py-2 rounded-2xl text-xs font-semibold flex items-center gap-2">
                     <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                     READY
                 </div>
@@ -125,9 +129,9 @@
     <div class="max-w-screen-2xl mx-auto p-6">
         <div id="gridContainer" class="grid-container"></div>
         
-        <div class="status-bar flex justify-between mt-4 px-2">
-            <div>5000 rows × 15 columns • Click any cell and type • Changes saved automatically in browser</div>
-            <div id="lastSaved" class="text-emerald-500">Last saved: just now</div>
+        <div class="flex justify-between text-sm text-slate-400 mt-4 px-2">
+            <div>5000 rows × 15 columns • Click any cell and start typing</div>
+            <div id="lastSaved" class="text-emerald-500 font-medium">Last saved: just now</div>
         </div>
     </div>
 
@@ -140,12 +144,9 @@
             
             let html = `<table id="mainTable"><thead><tr><th>#</th>`;
             
-            columns.forEach(col => {
-                html += `<th>${col}</th>`;
-            });
+            columns.forEach(col => html += `<th>${col}</th>`);
             html += `</tr></thead><tbody>`;
             
-            // Create 5000 rows
             for (let row = 1; row <= 5000; row++) {
                 html += `<tr><th>${row}</th>`;
                 for (let col = 0; col < 15; col++) {
@@ -158,8 +159,6 @@
             container.innerHTML = html;
             
             table = document.getElementById('mainTable');
-            
-            // Make cells properly editable
             setupCellListeners();
         }
         
@@ -167,28 +166,25 @@
             const cells = table.querySelectorAll('td[contenteditable]');
             
             cells.forEach(cell => {
-                // Show current cell address when focused
                 cell.addEventListener('focus', () => {
                     const row = cell.dataset.row;
                     const col = cell.dataset.col;
                     document.getElementById('currentCell').textContent = `\( {col} \){row}`;
                 });
                 
-                // Auto-save indicator
                 cell.addEventListener('input', () => {
                     document.getElementById('lastSaved').textContent = 'Last saved: just now';
                     setTimeout(() => {
                         document.getElementById('lastSaved').textContent = 'Last saved: moments ago';
-                    }, 2000);
+                    }, 1500);
                 });
                 
-                // Keyboard navigation (like Excel)
+                // Enter key moves down
                 cell.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         const nextRow = parseInt(cell.dataset.row) + 1;
-                        const col = cell.dataset.col;
-                        const nextCell = table.querySelector(`td[data-row="\( {nextRow}"][data-col=" \){col}"]`);
+                        const nextCell = table.querySelector(`td[data-row="\( {nextRow}"][data-col=" \){cell.dataset.col}"]`);
                         if (nextCell) nextCell.focus();
                     }
                 });
@@ -198,30 +194,30 @@
         function downloadCSV() {
             if (!table) return;
             
-            let csv = columns.join(',') + '\n';
+            let csvContent = columns.join(',') + '\n';
             
             const rows = table.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 const cells = Array.from(row.querySelectorAll('td'));
-                const values = cells.map(cell => {
-                    let val = cell.innerText.trim();
-                    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
-                        val = '"' + val.replace(/"/g, '""') + '"';
+                const rowValues = cells.map(cell => {
+                    let text = (cell.innerText || '').trim();
+                    if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+                        text = '"' + text.replace(/"/g, '""') + '"';
                     }
-                    return val;
+                    return text;
                 });
-                csv += values.join(',') + '\n';
+                csvContent += rowValues.join(',') + '\n';
             });
             
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `gridly_export_${new Date().toISOString().slice(0,10)}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `gridly_export_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             
-            showToast('✅ CSV downloaded (open in Excel)');
+            showToast('✅ Excel CSV downloaded successfully!');
         }
         
         function downloadPDF() {
@@ -242,71 +238,85 @@
                 head: head,
                 body: body,
                 theme: 'grid',
-                headStyles: { fillColor: [30, 64, 175], textColor: 255, fontSize: 11 },
-                bodyStyles: { fontSize: 9, cellPadding: 4 },
-                margin: { top: 40 },
-                didDrawPage: (data) => {
-                    doc.setFontSize(18);
-                    doc.text('Gridly Spreadsheet', 40, 30);
+                headStyles: { 
+                    fillColor: [30, 64, 175], 
+                    textColor: 255, 
+                    fontSize: 11,
+                    halign: 'center'
+                },
+                bodyStyles: { 
+                    fontSize: 10,
+                    cellPadding: 5
+                },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
+                margin: { top: 45, left: 30, right: 30 },
+                didDrawPage: function(data) {
+                    doc.setFontSize(20);
+                    doc.setTextColor(30, 64, 175);
+                    doc.text("Gridly Spreadsheet Export", 40, 30);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text("15 columns • 5000 rows", 40, 45);
                 }
             });
             
             doc.save(`gridly_export_${new Date().toISOString().slice(0,10)}.pdf`);
-            showToast('📕 PDF downloaded');
+            showToast('📕 PDF downloaded successfully!');
         }
         
         function clearAll() {
-            if (!confirm('Clear ALL data from 5000 rows?')) return;
-            
+            if (!confirm('Clear ALL data? This cannot be undone.')) return;
             const cells = table.querySelectorAll('td');
             cells.forEach(cell => cell.innerHTML = '');
-            showToast('🧹 All data cleared');
+            showToast('🧹 Sheet cleared');
         }
         
         function fillSampleData() {
             const cells = table.querySelectorAll('td');
-            let i = 0;
+            let idx = 0;
             
-            const headers = ["Month", "Sales", "Cost", "Profit", "Units", "Region", "Target", "Variance", "Notes"];
+            const sampleHeaders = ["Item", "Q1", "Q2", "Q3", "Q4", "Total", "Region", "Status", "Notes"];
             
-            for (let r = 0; r < 30 && i < cells.length; r++) {
-                for (let c = 0; c < 15 && i < cells.length; c++) {
+            for (let r = 0; r < 25; r++) {
+                for (let c = 0; c < 15 && idx < cells.length; c++) {
                     if (r === 0) {
-                        cells[i].innerText = headers[c % headers.length] || "Data";
-                    } else if (c === 1 || c === 2 || c === 3) {
-                        cells[i].innerText = (Math.random() * 50000 + 10000).toFixed(0);
-                    } else if (c === 4) {
-                        cells[i].innerText = Math.floor(Math.random() * 5000) + 1000;
+                        cells[idx].innerText = sampleHeaders[c % sampleHeaders.length] || "Column " + (c+1);
+                    } else if (c >= 1 && c <= 4) {
+                        cells[idx].innerText = Math.floor(5000 + Math.random() * 45000);
+                    } else if (c === 5) {
+                        cells[idx].innerText = Math.floor(20000 + Math.random() * 80000);
                     } else {
-                        cells[i].innerText = ["North", "South", "East", "West"][Math.floor(Math.random()*4)];
+                        cells[idx].innerText = ["North", "South", "East", "West"][Math.floor(Math.random() * 4)];
                     }
-                    i++;
+                    idx++;
                 }
             }
-            showToast('📊 Sample data filled in first 30 rows');
+            showToast('📊 Sample data added to first 25 rows');
         }
         
-        function showToast(msg) {
+        function showToast(message) {
             const toast = document.createElement('div');
             toast.style.cssText = `
-                position: fixed; bottom: 30px; right: 30px; background: #2563eb; color: white; 
-                padding: 14px 24px; border-radius: 9999px; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-                z-index: 10000; font-weight: 500;
+                position: fixed; bottom: 30px; right: 30px; 
+                background: #1e40af; color: white; padding: 16px 28px; 
+                border-radius: 9999px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                z-index: 99999; font-weight: 500;
             `;
-            toast.textContent = msg;
+            toast.textContent = message;
             document.body.appendChild(toast);
             
             setTimeout(() => {
-                toast.style.transition = 'all 0.3s';
+                toast.style.transition = 'opacity 0.4s, transform 0.4s';
                 toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 2500);
+                toast.style.transform = 'translateY(20px)';
+                setTimeout(() => toast.remove(), 400);
+            }, 2800);
         }
         
-        // Initialize the app
-        window.onload = () => {
+        // Initialize
+        window.onload = function() {
             createSpreadsheet();
-            console.log('%c✅ Gridly is now fully functional! Click any cell to type.', 'color: #2563eb; font-size: 16px;');
+            console.log('%c✅ Gridly fully loaded - Text is now visible and downloads work!', 'color:#1e40af; font-size:16px');
         };
     </script>
 </body>
