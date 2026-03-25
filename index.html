@@ -1,310 +1,242 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WhatsApp Status Scheduler</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <style>
-    body { background: #0f0f17; color: #e2e8f0; font-family: system-ui, sans-serif; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 1rem; }
-    .status-preview { max-height: 180px; object-fit: cover; border-radius: 0.75rem; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Excel-like WebApp + Advanced Formulas + Charts</title>
+    
+    <!-- Jspreadsheet -->
+    <script src="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.js"></script>
+    <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.css">
+    <script src="https://bossanova.uk/jspreadsheet/v5/jsuites.js"></script>
+    <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v5/jsuites.css">
+
+    <!-- SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- HyperFormula -->
+    <script src="https://cdn.jsdelivr.net/npm/hyperformula@latest/dist/hyperformula.full.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f9f9f9; }
+        h1 { margin: 10px 0 5px; }
+        .container { display: flex; gap: 15px; flex-wrap: wrap; }
+        #spreadsheet { flex: 2; min-width: 600px; border: 1px solid #ccc; }
+        .chart-panel { flex: 1; min-width: 350px; background: white; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .chart-container { position: relative; height: 400px; margin-bottom: 20px; }
+        button { margin: 5px 3px; padding: 8px 12px; cursor: pointer; }
+    </style>
 </head>
-<body class="min-h-screen pb-12">
-
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-8">
-
-    <header class="text-center mb-10">
-      <h1 class="text-3xl sm:text-4xl font-bold flex items-center justify-center gap-3">
-        <i class="fa-brands fa-whatsapp text-green-500 text-4xl"></i>
-        WhatsApp Status Scheduler
-      </h1>
-      <p class="mt-2 text-slate-400">Schedule daily status updates automatically</p>
-    </header>
-
-    <div class="grid md:grid-cols-2 gap-6 mb-10">
-
-      <!-- Connection -->
-      <div class="card p-6">
-        <h2 class="text-xl font-semibold mb-5 flex items-center gap-2">
-          <i class="fa-solid fa-link text-green-400"></i> Wassenger Connection
-        </h2>
-        <div class="space-y-4">
-          <input id="deviceId" type="text" placeholder="Device ID" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500">
-          <input id="token" type="password" placeholder="API Token" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500">
-          <button onclick="saveConnection()" class="w-full bg-green-600 hover:bg-green-500 text-white font-medium py-3 rounded-lg transition">
-            Save Connection
-          </button>
-        </div>
-      </div>
-
-      <!-- Settings -->
-      <div class="card p-6">
-        <h2 class="text-xl font-semibold mb-5 flex items-center gap-2">
-          <i class="fa-solid fa-clock text-blue-400"></i> Daily Schedule
-        </h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm text-slate-400 mb-1">Posting mode</label>
-            <select id="mode" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3">
-              <option value="random">Random status each day</option>
-              <option value="sequential">Cycle through in order</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm text-slate-400 mb-1">Time (24-hour)</label>
-            <input id="postTime" type="time" value="09:00" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3">
-          </div>
-        </div>
-      </div>
-
+<body>
+    <h1>Excel-like WebApp <small>(Advanced Formulas + Live Charts)</small></h1>
+    
+    <div style="margin-bottom: 10px;">
+        <button onclick="exportToExcel()">📥 Excel (.xlsx)</button>
+        <button onclick="exportToPDF()">📥 PDF</button>
+        <button onclick="addNewSheet()">+ Sheet</button>
+        
+        <span style="margin-left: 30px; font-weight: bold;">Create Chart:</span>
+        <button onclick="createChart('line')">Line</button>
+        <button onclick="createChart('bar')">Bar</button>
+        <button onclick="createChart('pie')">Pie</button>
+        <button onclick="createChart('doughnut')">Doughnut</button>
     </div>
 
-    <!-- Add new status -->
-    <div class="card p-6 mb-10">
-      <h2 class="text-xl font-semibold mb-5 flex items-center gap-2">
-        <i class="fa-solid fa-plus text-purple-400"></i> Add New Status
-      </h2>
-
-      <div class="grid sm:grid-cols-2 gap-5 mb-5">
-        <div>
-          <label class="block text-sm text-slate-400 mb-1">Message / Caption</label>
-          <textarea id="message" rows="3" placeholder="Write your status text here..." class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"></textarea>
+    <div class="container">
+        <div id="spreadsheet"></div>
+        
+        <div class="chart-panel">
+            <h3>Live Chart</h3>
+            <div class="chart-container">
+                <canvas id="myChart"></canvas>
+            </div>
+            <small style="color: #666;">Edit cells → chart updates automatically</small>
         </div>
-        <div>
-          <label class="block text-sm text-slate-400 mb-1">Image or Video (optional)</label>
-          <input id="mediaFile" type="file" accept="image/*,video/*" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-700 file:text-slate-300 hover:file:bg-slate-600">
-          <p id="uploadStatus" class="mt-2 text-sm text-slate-500"></p>
-        </div>
-      </div>
-
-      <div id="previewContainer" class="hidden mt-4 mb-4 rounded-lg overflow-hidden border border-slate-600 bg-slate-900">
-        <img id="previewImg" class="status-preview w-full hidden" alt="Preview"/>
-        <video id="previewVideo" class="status-preview w-full hidden" controls></video>
-      </div>
-
-      <button onclick="addStatus()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 rounded-lg transition">
-        Add Status
-      </button>
     </div>
 
-    <!-- Status list -->
-    <div class="mb-10">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">Your Statuses (<span id="statusCount">0</span>)</h2>
-      </div>
+    <script>
+        // ==================== HyperFormula Setup ====================
+        const hf = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' });
 
-      <div id="statusesList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-    </div>
-
-    <!-- Export area -->
-    <div class="card p-6">
-      <h2 class="text-xl font-semibold mb-5 flex items-center gap-2">
-        <i class="fa-solid fa-download text-amber-400"></i> Export Configuration
-      </h2>
-      <p class="text-slate-400 mb-4">After adding statuses, export the config for your backend.</p>
-      <button onclick="exportConfig()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-3 rounded-lg transition mb-5">
-        Export Config
-      </button>
-
-      <div id="exportResult" class="hidden">
-        <div class="bg-slate-900 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto max-h-96 border border-slate-700 mb-4" id="jsonOutput"></div>
-        <button onclick="copyJson()" class="w-full bg-green-600 hover:bg-green-500 text-white font-medium py-3 rounded-lg transition">
-          Copy JSON to Clipboard
-        </button>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- JavaScript -->
-  <script>
-    let statuses = [];
-    let deviceId = '';
-    let token = '';
-    let mode = 'random';
-    let postTime = '09:00';
-    let mediaUrl = null;
-
-    const IMGBB_KEY = '60f3093b93e24108b8a7a15ad5194abb';
-
-    // Load saved data from localStorage
-    function loadData() {
-      const saved = localStorage.getItem('waStatusScheduler');
-      if (saved) {
-        const data = JSON.parse(saved);
-        statuses = data.statuses || [];
-        deviceId = data.deviceId || '';
-        token = data.token || '';
-        mode = data.mode || 'random';
-        postTime = data.postTime || '09:00';
-
-        document.getElementById('deviceId').value = deviceId;
-        document.getElementById('token').value = token;
-        document.getElementById('mode').value = mode;
-        document.getElementById('postTime').value = postTime;
-        renderStatuses();
-      }
-    }
-
-    function saveData() {
-      localStorage.setItem('waStatusScheduler', JSON.stringify({
-        statuses, deviceId, token, mode, postTime
-      }));
-    }
-
-    // Save connection details
-    function saveConnection() {
-      deviceId = document.getElementById('deviceId').value.trim();
-      token = document.getElementById('token').value.trim();
-      if (!deviceId || !token) {
-        alert('Please fill both Device ID and Token');
-        return;
-      }
-      saveData();
-      alert('Connection saved!');
-    }
-
-    // Upload file to ImgBB when selected
-    document.getElementById('mediaFile').addEventListener('change', async e => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const statusEl = document.getElementById('uploadStatus');
-      statusEl.textContent = 'Uploading...';
-
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('key', IMGBB_KEY);
-
-      try {
-        const res = await fetch('https://api.imgbb.com/1/upload', {
-          method: 'POST',
-          body: formData
+        // ==================== Jspreadsheet Setup ====================
+        let spreadsheet = jspreadsheet(document.getElementById('spreadsheet'), {
+            minDimensions: [12, 25],
+            toolbar: true,
+            tabs: true,
+            columnResize: true,
+            rowResize: true,
+            contextMenu: true,
+            allowInsertRow: true,
+            allowInsertColumn: true,
+            allowDeleteRow: true,
+            allowDeleteColumn: true,
+            onchange: updateHyperAndChart,
+            oninsertrow: syncAndRefresh,
+            oninsertcolumn: syncAndRefresh,
+            ondeleterow: syncAndRefresh,
+            ondeletecolumn: syncAndRefresh,
         });
-        const json = await res.json();
 
-        if (json.success) {
-          mediaUrl = json.data.url;
-          statusEl.textContent = 'Upload successful ✓';
+        let currentChart = null;
 
-          const previewContainer = document.getElementById('previewContainer');
-          const img = document.getElementById('previewImg');
-          const video = document.getElementById('previewVideo');
-
-          previewContainer.classList.remove('hidden');
-
-          if (file.type.startsWith('image/')) {
-            img.src = mediaUrl;
-            img.classList.remove('hidden');
-            video.classList.add('hidden');
-          } else if (file.type.startsWith('video/')) {
-            video.src = mediaUrl;
-            video.classList.remove('hidden');
-            img.classList.add('hidden');
-          }
-        } else {
-          statusEl.textContent = 'Upload failed: ' + (json.error?.message || 'Unknown error');
-          mediaUrl = null;
+        // ==================== Sync with HyperFormula ====================
+        function updateHyperAndChart(instance, cell, x, y, value) {
+            const sheetIndex = spreadsheet.getWorksheetIndex();
+            const hfSheetId = hf.getSheetId(hf.getSheetName(sheetIndex));
+            hf.setCellContents({ sheet: hfSheetId, col: x, row: y }, [[value || '']]);
+            refreshDisplayedValues();
+            updateChart();   // ← Live update
         }
-      } catch (err) {
-        statusEl.textContent = 'Error: ' + err.message;
-        mediaUrl = null;
-      }
-    });
 
-    // Add a new status to the list
-    function addStatus() {
-      const message = document.getElementById('message').value.trim();
-      if (!message) {
-        alert('Please enter a message/caption');
-        return;
-      }
+        function syncAndRefresh() {
+            syncWithHyperFormula();
+            updateChart();
+        }
 
-      statuses.push({
-        id: Date.now(),
-        message,
-        mediaUrl: mediaUrl || null
-      });
+        function syncWithHyperFormula() {
+            const sheetIndex = spreadsheet.getWorksheetIndex();
+            const hfSheetId = hf.getSheetId(hf.getSheetName(sheetIndex));
+            const data = spreadsheet.getData();
+            hf.setSheetContent(hfSheetId, data.map(row => row.map(cell => 
+                cell && cell.toString().startsWith('=') ? cell : (cell || '')
+            )));
+            refreshDisplayedValues();
+        }
 
-      // Reset form
-      mediaUrl = null;
-      document.getElementById('message').value = '';
-      document.getElementById('mediaFile').value = '';
-      document.getElementById('uploadStatus').textContent = '';
-      document.getElementById('previewContainer').classList.add('hidden');
-      document.getElementById('previewImg').classList.add('hidden');
-      document.getElementById('previewVideo').classList.add('hidden');
+        function refreshDisplayedValues() {
+            const sheetIndex = spreadsheet.getWorksheetIndex();
+            const hfSheetId = hf.getSheetId(hf.getSheetName(sheetIndex));
+            const dims = hf.getSheetDimensions(hfSheetId);
+            for (let r = 0; r < dims.height; r++) {
+                for (let c = 0; c < dims.width; c++) {
+                    const val = hf.getCellValue({ sheet: hfSheetId, col: c, row: r });
+                    if (val !== null && val !== undefined) {
+                        spreadsheet.setValueFromCoords(c, r, val, false);
+                    }
+                }
+            }
+        }
 
-      saveData();
-      renderStatuses();
-    }
+        function addNewSheet() {
+            const name = `Sheet${spreadsheet.worksheets.length + 1}`;
+            hf.addSheet(name);
+            spreadsheet.insertWorksheet({ worksheetName: name, minDimensions: [12, 25] });
+            syncWithHyperFormula();
+        }
 
-    function deleteStatus(id) {
-      if (!confirm('Delete this status?')) return;
-      statuses = statuses.filter(s => s.id !== id);
-      saveData();
-      renderStatuses();
-    }
+        // ==================== Chart.js Functions ====================
+        function getSelectedData() {
+            // For simplicity: use columns A (labels) and C (Profit) from demo
+            // You can extend this to use actual selected range later
+            const data = spreadsheet.getData();
+            const labels = [];
+            const values = [];
+            
+            for (let i = 1; i < data.length; i++) {   // skip header
+                if (data[i][0]) labels.push(data[i][0]);   // Column A
+                if (data[i][2] !== undefined) values.push(Number(data[i][2]) || 0); // Column C (Profit)
+            }
+            return { labels, values };
+        }
 
-    function renderStatuses() {
-      const container = document.getElementById('statusesList');
-      container.innerHTML = '';
+        function createChart(type) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const { labels, values } = getSelectedData();
 
-      statuses.forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'card p-4 relative';
-        div.innerHTML = `
-          <p class="text-sm mb-3 line-clamp-3">${s.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
-          \( {s.mediaUrl ? (s.mediaUrl.match(/\.(mp4|webm|ogg) \)/i)
-            ? `<video src="${s.mediaUrl}" class="status-preview w-full" controls></video>`
-            : `<img src="${s.mediaUrl}" class="status-preview w-full" alt="media">`) : ''}
-          <button onclick="deleteStatus(${s.id})" class="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white text-xs px-2 py-1 rounded">
-            Delete
-          </button>
-        `;
-        container.appendChild(div);
-      });
+            if (currentChart) currentChart.destroy();
 
-      document.getElementById('statusCount').textContent = statuses.length;
-    }
+            currentChart = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels.length ? labels : ['Item 1', 'Item 2', 'Item 3'],
+                    datasets: [{
+                        label: 'Profit',
+                        data: values.length ? values : [18000, 25000, 32000],
+                        backgroundColor: type === 'line' ? 'rgba(54, 162, 235, 0.2)' : 
+                                       ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
+                        borderColor: '#36A2EB',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: `${type.charAt(0).toUpperCase() + type.slice(1)} Chart` }
+                    },
+                    scales: type !== 'pie' && type !== 'doughnut' ? {
+                        y: { beginAtZero: true }
+                    } : {}
+                }
+            });
+        }
 
-    // Export configuration as JSON (shown + copyable)
-    let currentConfigJson = '';
+        function updateChart() {
+            if (!currentChart) return;
+            const { labels, values } = getSelectedData();
+            currentChart.data.labels = labels.length ? labels : ['Item 1', 'Item 2', 'Item 3'];
+            currentChart.data.datasets[0].data = values.length ? values : [18000, 25000, 32000];
+            currentChart.update('none');   // smooth update
+        }
 
-    function exportConfig() {
-      mode = document.getElementById('mode').value;
-      postTime = document.getElementById('postTime').value;
-      saveData();
+        // ==================== Export Functions ====================
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            spreadsheet.worksheets.forEach((ws, i) => {
+                const data = ws.getData();
+                const sheetName = hf.getSheetName(i) || `Sheet${i+1}`;
+                const wsExcel = XLSX.utils.aoa_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, wsExcel, sheetName);
+            });
+            XLSX.writeFile(wb, "spreadsheet-with-charts.xlsx");
+        }
 
-      const config = {
-        deviceId,
-        token,
-        statuses,
-        mode,
-        postTime,
-        lastIndex: 0
-      };
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Spreadsheet with Charts", 14, 20);
+            const data = spreadsheet.getData();
+            let y = 30;
+            data.forEach(row => {
+                doc.text(row.join("   "), 14, y);
+                y += 7;
+                if (y > 280) { doc.addPage(); y = 30; }
+            });
+            doc.save("spreadsheet-with-charts.pdf");
+        }
 
-      currentConfigJson = JSON.stringify(config, null, 2);
+        // ==================== Demo Data ====================
+        setTimeout(() => {
+            syncWithHyperFormula();
 
-      document.getElementById('jsonOutput').textContent = currentConfigJson;
-      document.getElementById('exportResult').classList.remove('hidden');
-      document.getElementById('exportResult').scrollIntoView({ behavior: 'smooth' });
-    }
+            // Header
+            spreadsheet.setValueFromCoords(0, 0, "Month", false);
+            spreadsheet.setValueFromCoords(1, 0, "Revenue", false);
+            spreadsheet.setValueFromCoords(2, 0, "Cost", false);
+            spreadsheet.setValueFromCoords(3, 0, "Profit", false);
 
-    function copyJson() {
-      navigator.clipboard.writeText(currentConfigJson)
-        .then(() => alert('Config copied to clipboard!\n\nNext: paste it as config.json in your GitHub repo'))
-        .catch(() => {
-          alert('Copy failed. Long-press the text area and select "Copy" manually.');
-        });
-    }
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+            for (let i = 0; i < months.length; i++) {
+                spreadsheet.setValueFromCoords(0, i+1, months[i], false);
+                spreadsheet.setValueFromCoords(1, i+1, 40000 + i * 8000, false);
+                spreadsheet.setValueFromCoords(2, i+1, 22000 + i * 5000, false);
+                spreadsheet.setValueFromCoords(3, i+1, `=B\( {i+2}-C \){i+2}`, false);
+            }
 
-    // Load data when page opens
-    window.addEventListener('load', loadData);
-  </script>
+            refreshDisplayedValues();
+
+            // Create initial Line Chart
+            createChart('line');
+        }, 400);
+
+        console.log("✅ Spreadsheet with Advanced Formulas + Live Charts Ready!");
+    </script>
 </body>
 </html>
